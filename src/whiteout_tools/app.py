@@ -4,6 +4,8 @@ from whiteout_tools.data import PACKS
 from whiteout_tools.models.target import Target
 from whiteout_tools.optimizer.craftsman_shop import CraftsmanShopOptimizer
 
+PRICE_TIERS = [800, 1600, 3200, 8000, 15800]
+
 
 def main() -> None:
     st.title("工商の匠 Optimizer")
@@ -24,7 +26,25 @@ def main() -> None:
         result = optimizer.optimize(target)
 
         st.subheader("結果")
-        st.metric("合計金額", f"{result.total_price:,}円")
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("💴 合計金額", f"{result.total_price:,}円")
+        col2.metric("🔩 合金", f"{result.total_alloy:,}")
+        col3.metric("🧪 研磨剤", f"{result.total_polish:,}")
+        col4.metric("📐 図面", f"{result.total_blueprint:,}")
+
+        st.write("### 購入順")
+
+        selected = {
+            pack.price_tier: pack.category.value
+            for pack in result.packs
+        }
+
+        for price in PRICE_TIERS:
+            if price in selected:
+                st.success(f"{price:,}円　{selected[price]}")
+            else:
+                st.info(f"{price:,}円　購入なし")
 
         rows = [
             {
@@ -37,13 +57,14 @@ def main() -> None:
             for pack in result.packs
         ]
 
-        st.write("### 購入パック")
+        st.write("### 購入パック詳細")
         st.dataframe(rows, use_container_width=True)
 
-        st.write("### 合計獲得素材")
-        st.write(f"- 合金：{result.total_alloy:,}")
-        st.write(f"- 研磨剤：{result.total_polish:,}")
-        st.write(f"- 図面：{result.total_blueprint:,}")
+        st.write("### 余剰素材")
+        surplus_col1, surplus_col2, surplus_col3 = st.columns(3)
+        surplus_col1.metric("🔩 合金余剰", f"+{result.total_alloy - target.alloy:,}")
+        surplus_col2.metric("🧪 研磨剤余剰", f"+{result.total_polish - target.polish:,}")
+        surplus_col3.metric("📐 図面余剰", f"+{result.total_blueprint - target.blueprint:,}")
 
 
 if __name__ == "__main__":
