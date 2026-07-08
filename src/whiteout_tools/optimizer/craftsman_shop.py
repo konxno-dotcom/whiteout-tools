@@ -67,14 +67,7 @@ class CraftsmanShopOptimizer:
             except NotImplementedError:
                 continue
 
-            if best_result is None:
-                best_result = result
-            elif result.total_price < best_result.total_price:
-                best_result = result
-            elif (
-                result.total_price == best_result.total_price
-                and self._surplus_score(result, target) < self._surplus_score(best_result, target)
-            ):
+            if self._is_better_result(result, best_result, target):
                 best_result = result
 
         if best_result is None:
@@ -88,3 +81,23 @@ class CraftsmanShopOptimizer:
             + result.total_polish - target.polish
             + result.total_blueprint - target.blueprint
     )
+
+    def _is_better_result(
+        self,
+        candidate: OptimizationResult,
+        current_best: OptimizationResult | None,
+        target: Target,
+    ) -> bool:
+        if current_best is None:
+            return True
+
+        if candidate.total_price < current_best.total_price:
+            return True
+
+        if candidate.total_price > current_best.total_price:
+            return False
+
+            return self._surplus_score(candidate, target) < self._surplus_score(
+                current_best,
+                target,
+            )
