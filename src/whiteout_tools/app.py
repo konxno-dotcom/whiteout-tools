@@ -59,11 +59,14 @@ def main() -> None:
 
         selected = {pack.price_tier: pack.category.value for pack in result.packs}
 
-        for price in PRICE_TIERS:
+        for index, price in enumerate(PRICE_TIERS, start=1):
             if price in selected:
-                st.success(f"{price:,}円　{selected[price]}")
+                st.success(f"{index}. {price:,}円　{selected[price]}")
             else:
-                st.info(f"{price:,}円　購入なし")
+                st.info(f"{index}. {price:,}円　購入なし")
+
+            if index < len(PRICE_TIERS):
+                st.write("↓")
 
         rows = [
             {
