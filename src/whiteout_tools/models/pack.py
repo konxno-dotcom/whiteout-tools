@@ -13,7 +13,13 @@ class Pack:
 
     category: PackCategory
     price_tier: int
+    step: int
 
     alloy: int
     polish: int
     blueprint: int
+   
+
+Pack(PackCategory.MYOGI, 800, 1, 26000, 262, 0)
+Pack(PackCategory.MYOGI, 1600, 2, 52000, 524, 0)
+Pack(PackCategory.MYOGI, 3200, 3, 104000, 1048, 0)
