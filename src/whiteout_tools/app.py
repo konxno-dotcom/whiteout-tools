@@ -9,17 +9,39 @@ PRICE_TIERS = [800, 1600, 3200, 8000, 15800]
 
 def main() -> None:
     st.title("工商の匠 Optimizer")
-    st.write("必要素材を入力すると、最安の購入組み合わせを計算します。")
+    st.write("現在所持数と目標数から、不足分を計算して最安の購入組み合わせを出します。")
 
-    alloy = st.number_input("必要な合金", min_value=0, value=100_000, step=1_000)
-    polish = st.number_input("必要な研磨剤", min_value=0, value=3_800, step=100)
-    blueprint = st.number_input("必要な図面", min_value=0, value=1_600, step=10)
+    st.header("素材入力")
+
+    current_col, target_col = st.columns(2)
+
+    with current_col:
+        st.subheader("現在所持")
+        current_alloy = st.number_input("現在の合金", min_value=0, value=0, step=1_000)
+        current_polish = st.number_input("現在の研磨剤", min_value=0, value=0, step=100)
+        current_blueprint = st.number_input("現在の図面", min_value=0, value=0, step=10)
+
+    with target_col:
+        st.subheader("目標")
+        target_alloy = st.number_input("目標の合金", min_value=0, value=100_000, step=1_000)
+        target_polish = st.number_input("目標の研磨剤", min_value=0, value=3_800, step=100)
+        target_blueprint = st.number_input("目標の図面", min_value=0, value=1_600, step=10)
+
+    needed_alloy = max(0, int(target_alloy) - int(current_alloy))
+    needed_polish = max(0, int(target_polish) - int(current_polish))
+    needed_blueprint = max(0, int(target_blueprint) - int(current_blueprint))
+
+    st.header("不足数")
+    need_col1, need_col2, need_col3 = st.columns(3)
+    need_col1.metric("🔩 合金", f"{needed_alloy:,}")
+    need_col2.metric("🧪 研磨剤", f"{needed_polish:,}")
+    need_col3.metric("📐 図面", f"{needed_blueprint:,}")
 
     if st.button("最適化する"):
         target = Target(
-            alloy=int(alloy),
-            polish=int(polish),
-            blueprint=int(blueprint),
+            alloy=needed_alloy,
+            polish=needed_polish,
+            blueprint=needed_blueprint,
         )
 
         optimizer = CraftsmanShopOptimizer(PACKS)
@@ -35,10 +57,7 @@ def main() -> None:
 
         st.write("### 購入順")
 
-        selected = {
-            pack.price_tier: pack.category.value
-            for pack in result.packs
-        }
+        selected = {pack.price_tier: pack.category.value for pack in result.packs}
 
         for price in PRICE_TIERS:
             if price in selected:
@@ -62,9 +81,9 @@ def main() -> None:
 
         st.write("### 余剰素材")
         surplus_col1, surplus_col2, surplus_col3 = st.columns(3)
-        surplus_col1.metric("🔩 合金余剰", f"+{result.total_alloy - target.alloy:,}")
-        surplus_col2.metric("🧪 研磨剤余剰", f"+{result.total_polish - target.polish:,}")
-        surplus_col3.metric("📐 図面余剰", f"+{result.total_blueprint - target.blueprint:,}")
+        surplus_col1.metric("🔩 合金余剰", f"+{result.total_alloy - needed_alloy:,}")
+        surplus_col2.metric("🧪 研磨剤余剰", f"+{result.total_polish - needed_polish:,}")
+        surplus_col3.metric("📐 図面余剰", f"+{result.total_blueprint - needed_blueprint:,}")
 
 
 if __name__ == "__main__":
