@@ -7,7 +7,6 @@ from whiteout_tools.optimizer.craftsman_shop import CraftsmanShopOptimizer
 
 def main() -> None:
     st.title("工商の匠 Optimizer")
-
     st.write("必要素材を入力すると、最安の購入組み合わせを計算します。")
 
     alloy = st.number_input("必要な合金", min_value=0, value=100_000, step=1_000)
@@ -27,23 +26,24 @@ def main() -> None:
         st.subheader("結果")
         st.metric("合計金額", f"{result.total_price:,}円")
 
-        st.write("### 購入パック")
+        rows = [
+            {
+                "価格": f"{pack.price_tier:,}円",
+                "種類": pack.category.value,
+                "合金": pack.alloy,
+                "研磨剤": pack.polish,
+                "図面": pack.blueprint,
+            }
+            for pack in result.packs
+        ]
 
-        for pack in result.packs:
-            st.write(
-                f"- {pack.price_tier:,}円：{pack.category.value} "
-                f" / 合金 {pack.alloy:,} / 研磨剤 {pack.polish:,} / 図面 {pack.blueprint:,}"
-            )
+        st.write("### 購入パック")
+        st.dataframe(rows, use_container_width=True)
 
         st.write("### 合計獲得素材")
         st.write(f"- 合金：{result.total_alloy:,}")
         st.write(f"- 研磨剤：{result.total_polish:,}")
         st.write(f"- 図面：{result.total_blueprint:,}")
-
-        st.write("### 余剰")
-        st.write(f"- 合金：+{result.total_alloy - target.alloy:,}")
-        st.write(f"- 研磨剤：+{result.total_polish - target.polish:,}")
-        st.write(f"- 図面：+{result.total_blueprint - target.blueprint:,}")
 
 
 if __name__ == "__main__":
