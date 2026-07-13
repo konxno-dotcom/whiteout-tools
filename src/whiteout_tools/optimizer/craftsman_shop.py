@@ -89,19 +89,37 @@ class CraftsmanShopOptimizer:
             and sum(pack.blueprint for pack in packs) >= target.blueprint
         )
 
-    def _surplus_score(self, result: OptimizationResult, target: Target) -> int:
+    def _surplus_score(
+        self,
+        result: OptimizationResult,
+        target: Target,
+    ) -> int:
+        surplus_alloy = max(0, result.total_alloy - target.alloy)
+        surplus_polish = max(0, result.total_polish - target.polish)
+        surplus_blueprint = max(0, result.total_blueprint - target.blueprint)
+
+        # 合金10,000 = 研磨剤100 = 図面20
         return (
-            max(0, result.total_alloy - target.alloy)
-            + max(0, result.total_polish - target.polish)
-            + max(0, result.total_blueprint - target.blueprint)
+            surplus_alloy
+            + surplus_polish * 100
+            + surplus_blueprint * 500
         )
 
-    def _shortage_score(self, result: OptimizationResult, target: Target) -> int:
+    def _shortage_score(
+        self,
+        result: OptimizationResult,
+        target: Target,
+    ) -> int:
+        shortage_alloy = max(0, target.alloy - result.total_alloy)
+        shortage_polish = max(0, target.polish - result.total_polish)
+        shortage_blueprint = max(0, target.blueprint - result.total_blueprint)
+
+        # 合金10,000 = 研磨剤100 = 図面20
         return (
-            max(0, target.alloy - result.total_alloy)
-            + max(0, target.polish - result.total_polish)
-            + max(0, target.blueprint - result.total_blueprint)
-        )
+        shortage_alloy
+        + shortage_polish * 100
+        + shortage_blueprint * 500
+    )
 
     def _is_better_result(
         self,
