@@ -78,7 +78,38 @@ def main() -> None:
 
             return
 
-        st.subheader("結果")
+            st.subheader("📋 購入レシート")
+
+            route_lines = [
+                f"{index}. {pack.price_tier:,}円　{pack.category.value}"
+                for index, pack in enumerate(result.packs, start=1)
+            ]
+
+            status_text = "目標達成" if result.is_reached else "目標未達"
+
+            receipt_text = "\n".join(
+                [
+                    "【工商の匠 購入レシート】",
+                    "",
+                    *route_lines,
+                    "",
+                    f"合計金額：{result.total_price:,}円",
+                    "",
+                    "獲得素材",
+                    f"合金：{result.total_alloy:,}",
+                    f"研磨剤：{result.total_polish:,}",
+                    f"図面：{result.total_blueprint:,}",
+                    "",
+                    "不足分に対する余剰",
+                    f"合金：{result.total_alloy - needed_alloy:+,}",
+                    f"研磨剤：{result.total_polish - needed_polish:+,}",
+                    f"図面：{result.total_blueprint - needed_blueprint:+,}",
+                    "",
+                    f"判定：{status_text}",
+                ]
+            )
+
+            st.code(receipt_text, language=None)
 
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("💴 合計金額", f"{result.total_price:,}円")
