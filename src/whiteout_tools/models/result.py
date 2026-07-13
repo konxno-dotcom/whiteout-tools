@@ -9,15 +9,16 @@ class OptimizationResult:
 
     packs: list[Pack]
     total_price: int
+    is_reached: bool = True
 
     @property
     def total_alloy(self) -> int:
-        return sum(p.alloy for p in self.packs)
+        return sum(pack.alloy for pack in self.packs)
 
     @property
     def total_polish(self) -> int:
-        return sum(p.polish for p in self.packs)
+        return sum(pack.polish for pack in self.packs)
 
     @property
     def total_blueprint(self) -> int:
-        return sum(p.blueprint for p in self.packs)
+        return sum(pack.blueprint for pack in self.packs)
