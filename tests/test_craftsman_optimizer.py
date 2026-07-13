@@ -49,6 +49,10 @@ def test_search_empty_target() -> None:
     optimizer = CraftsmanShopOptimizer(PACKS)
 
     result = optimizer._search(
+        current_alloy=0,
+        current_polish=0,
+        current_blueprint=0,
+        current_price=0,
         groups=optimizer._group_by_price(),
         tier_index=0,
         selected=[],

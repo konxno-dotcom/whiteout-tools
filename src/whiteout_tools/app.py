@@ -45,7 +45,38 @@ def main() -> None:
         )
 
         optimizer = CraftsmanShopOptimizer(PACKS)
-        result = optimizer.optimize(target)
+
+        try:
+            result = optimizer.optimize(target)
+        except NotImplementedError:
+            max_packs = [
+                max(
+                    [pack for pack in PACKS if pack.price_tier == price],
+                    key=lambda pack: pack.alloy + pack.polish + pack.blueprint,
+                )
+                for price in PRICE_TIERS
+            ]
+
+            max_alloy = sum(pack.alloy for pack in max_packs)
+            max_polish = sum(pack.polish for pack in max_packs)
+            max_blueprint = sum(pack.blueprint for pack in max_packs)
+            max_price = sum(pack.price_tier for pack in max_packs)
+
+            st.error("工商の匠だけでは必要素材に届きません。最大まで購入した場合の不足分を表示します。")
+
+            st.metric("最大購入金額", f"{max_price:,}円")
+
+            st.write("### 最大購入した場合の獲得素材")
+            st.write(f"- 合金：{max_alloy:,}")
+            st.write(f"- 研磨剤：{max_polish:,}")
+            st.write(f"- 図面：{max_blueprint:,}")
+
+            st.write("### それでも足りない素材")
+            st.write(f"- 合金：{max(0, needed_alloy - max_alloy):,}")
+            st.write(f"- 研磨剤：{max(0, needed_polish - max_polish):,}")
+            st.write(f"- 図面：{max(0, needed_blueprint - max_blueprint):,}")
+
+            return
 
         st.subheader("結果")
 
@@ -81,6 +112,62 @@ def main() -> None:
 
         st.write("### 購入パック詳細")
         st.dataframe(rows, use_container_width=True)
+        st.write("## 購入シミュレーション")
+
+        running_price = 0
+        running_alloy = 0
+        running_polish = 0
+        running_blueprint = 0
+
+        for index, pack in enumerate(result.packs, start=1):
+            running_price += pack.price_tier
+            running_alloy += pack.alloy
+            running_polish += pack.polish
+            running_blueprint += pack.blueprint
+
+            st.markdown(
+                f"### {index}. {pack.price_tier:,}円　{pack.category.value}"
+            )
+
+            pack_col1, pack_col2, pack_col3, pack_col4 = st.columns(4)
+            pack_col1.metric("💴 価格", f"{pack.price_tier:,}円")
+            pack_col2.metric("🔩 合金", f"{pack.alloy:,}")
+            pack_col3.metric("🧪 研磨剤", f"{pack.polish:,}")
+            pack_col4.metric("📐 図面", f"{pack.blueprint:,}")
+
+            st.caption("この時点での累計")
+
+            total_col1, total_col2, total_col3, total_col4 = st.columns(4)
+            total_col1.metric("💴 累計金額", f"{running_price:,}円")
+            total_col2.metric(
+                "🔩 累計合金",
+                f"{running_alloy:,}",
+                delta=f"{running_alloy - needed_alloy:,}",
+            )
+            total_col3.metric(
+                "🧪 累計研磨剤",
+                f"{running_polish:,}",
+                delta=f"{running_polish - needed_polish:,}",
+            )
+            total_col4.metric(
+                "📐 累計図面",
+                f"{running_blueprint:,}",
+                delta=f"{running_blueprint - needed_blueprint:,}",
+            )
+
+            is_reached_at_step = (
+                running_alloy >= needed_alloy
+                and running_polish >= needed_polish
+                and running_blueprint >= needed_blueprint
+            )
+
+            if is_reached_at_step:
+                st.success("この段階で目標達成です。ここで購入を止められます。")
+            else:
+                st.warning("まだ目標未達です。次の価格帯へ進みます。")
+
+            st.divider()
+
 
         st.write("### 余剰素材")
         surplus_col1, surplus_col2, surplus_col3 = st.columns(3)
