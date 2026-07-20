@@ -1,0 +1,17 @@
+[theme]
+base = "dark"
+primaryColor = "#4DA3FF"
+backgroundColor = "#0B1220"
+secondaryBackgroundColor = "#131D2E"
+textColor = "#F4F7FB"
+borderColor = "#26344A"
+showWidgetBorder = true
+baseRadius = "large"
+buttonRadius = "large"
+
+[theme.sidebar]
+backgroundColor = "#0F1929"
+secondaryBackgroundColor = "#18253A"
+
+[client]
+showSidebarNavigation = false

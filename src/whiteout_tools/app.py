@@ -1,149 +1,257 @@
 import streamlit as st  # type: ignore
 
 from whiteout_tools.data import PACKS
+from whiteout_tools.data.equipment_upgrades import EQUIPMENT_UPGRADES  # noqa: F401
 from whiteout_tools.models.target import Target
 from whiteout_tools.optimizer.craftsman_shop import CraftsmanShopOptimizer
+from whiteout_tools.services.equipment_upgrade_calculator import (
+    calculate_equipment_upgrade_cost,  # noqa: F401
+)
 
 PRICE_TIERS = [800, 1600, 3200, 8000, 15800]
 
+st.set_page_config(
+    page_title="Whiteout Tools",
+    page_icon="❄️",
+    layout="centered",
+)
+
 
 def main() -> None:
-    st.title("工商の匠 Optimizer")
-    st.write("現在所持数と目標数から、不足分を計算して最安の購入組み合わせを出します。")
+    with st.sidebar:
+        st.markdown("## ❄ Whiteout Lab")
+        st.caption("Whiteout Survival Utility Suite")
 
-    st.header("素材入力")
+        st.divider()
 
-    current_col, target_col = st.columns(2)
+        st.markdown("### 現在のツール")
+        st.success("工商の匠 Optimizer")
 
-    with current_col:
-        st.subheader("現在所持")
-        current_alloy = st.number_input("現在の合金", min_value=0, value=0, step=1_000)
-        current_polish = st.number_input("現在の研磨剤", min_value=0, value=0, step=100)
-        current_blueprint = st.number_input("現在の図面", min_value=0, value=0, step=10)
+        st.divider()
 
-    with target_col:
-        st.subheader("目標")
-        target_alloy = st.number_input("目標の合金", min_value=0, value=100_000, step=1_000)
-        target_polish = st.number_input("目標の研磨剤", min_value=0, value=3_800, step=100)
-        target_blueprint = st.number_input("目標の図面", min_value=0, value=1_600, step=10)
+        st.markdown(
+                """
+            <div style="
+                padding: 1.5rem;
+                border-radius: 16px;
+                background: linear-gradient(
+                    135deg,
+                    rgba(77,163,255,0.18),
+                    rgba(19,29,46,0.92)
+                );
+            ">
 
-    needed_alloy = max(0, int(target_alloy) - int(current_alloy))
-    needed_polish = max(0, int(target_polish) - int(current_polish))
-    needed_blueprint = max(0, int(target_blueprint) - int(current_blueprint))
+            <h1 style="margin:0;">
+            ❄ Whiteout Lab
+            </h1>
 
-    st.header("不足数")
-    need_col1, need_col2, need_col3 = st.columns(3)
-    need_col1.metric("🔩 合金", f"{needed_alloy:,}")
-    need_col2.metric("🧪 研磨剤", f"{needed_polish:,}")
-    need_col3.metric("📐 図面", f"{needed_blueprint:,}")
+            <p style="margin-top:8px;">
+            工商の匠 Optimizer
+            </p>
 
-    if st.button("最適化する"):
-        target = Target(
-            alloy=needed_alloy,
-            polish=needed_polish,
-            blueprint=needed_blueprint,
-        )
+            <p style="color:#B8C5D8;">
+            現在所持数と目標数から、
+            不足分を満たす最適な購入ルートを計算します。
+            </p>
 
-        optimizer = CraftsmanShopOptimizer(PACKS)
-
-        try:
-            result = optimizer.optimize(target)
-        except NotImplementedError:
-            max_packs = [
-                max(
-                    [pack for pack in PACKS if pack.price_tier == price],
-                    key=lambda pack: pack.alloy + pack.polish + pack.blueprint,
-                )
-                for price in PRICE_TIERS
-            ]
-
-            max_alloy = sum(pack.alloy for pack in max_packs)
-            max_polish = sum(pack.polish for pack in max_packs)
-            max_blueprint = sum(pack.blueprint for pack in max_packs)
-            max_price = sum(pack.price_tier for pack in max_packs)
-
-            st.error("工商の匠だけでは必要素材に届きません。最大まで購入した場合の不足分を表示します。")
-
-            st.metric("最大購入金額", f"{max_price:,}円")
-
-            st.write("### 最大購入した場合の獲得素材")
-            st.write(f"- 合金：{max_alloy:,}")
-            st.write(f"- 研磨剤：{max_polish:,}")
-            st.write(f"- 図面：{max_blueprint:,}")
-
-            st.write("### それでも足りない素材")
-            st.write(f"- 合金：{max(0, needed_alloy - max_alloy):,}")
-            st.write(f"- 研磨剤：{max(0, needed_polish - max_polish):,}")
-            st.write(f"- 図面：{max(0, needed_blueprint - max_blueprint):,}")
-
-            return
-
-            st.subheader("📋 購入レシート")
-
-            route_lines = [
-                f"{index}. {pack.price_tier:,}円　{pack.category.value}"
-                for index, pack in enumerate(result.packs, start=1)
-            ]
-
-            status_text = "目標達成" if result.is_reached else "目標未達"
-
-            receipt_text = "\n".join(
-                [
-                    "【工商の匠 購入レシート】",
-                    "",
-                    *route_lines,
-                    "",
-                    f"合計金額：{result.total_price:,}円",
-                    "",
-                    "獲得素材",
-                    f"合金：{result.total_alloy:,}",
-                    f"研磨剤：{result.total_polish:,}",
-                    f"図面：{result.total_blueprint:,}",
-                    "",
-                    "不足分に対する余剰",
-                    f"合金：{result.total_alloy - needed_alloy:+,}",
-                    f"研磨剤：{result.total_polish - needed_polish:+,}",
-                    f"図面：{result.total_blueprint - needed_blueprint:+,}",
-                    "",
-                    f"判定：{status_text}",
-                ]
+            </div>
+            """,
+                unsafe_allow_html=True,
             )
+        st.markdown("### ステータス")
+        st.caption("Engine: Stable")
+        st.caption("UI: Preview")
+        st.caption("Version 0.4.0")
 
-            st.code(receipt_text, language=None)
-
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("💴 合計金額", f"{result.total_price:,}円")
-        col2.metric("🔩 合金", f"{result.total_alloy:,}")
-        col3.metric("🧪 研磨剤", f"{result.total_polish:,}")
-        col4.metric("📐 図面", f"{result.total_blueprint:,}")
-
-        st.write("### 購入順")
-
-        selected = {pack.price_tier: pack.category.value for pack in result.packs}
-
-        for index, price in enumerate(PRICE_TIERS, start=1):
-            if price in selected:
-                st.success(f"{index}. {price:,}円　{selected[price]}")
-            else:
-                st.info(f"{index}. {price:,}円　購入なし")
-
-            if index < len(PRICE_TIERS):
-                st.write("↓")
-
-        rows = [
-            {
-                "価格": f"{pack.price_tier:,}円",
-                "種類": pack.category.value,
-                "合金": pack.alloy,
-                "研磨剤": pack.polish,
-                "図面": pack.blueprint,
-            }
-            for pack in result.packs
+    with st.form("optimizer_form", border=False):
+        equipment_names = [
+            upgrade.name
+            for upgrade in EQUIPMENT_UPGRADES
         ]
 
-        st.write("### 購入パック詳細")
-        st.dataframe(rows, use_container_width=True)
-        st.write("## 購入シミュレーション")
+        current_name = st.selectbox(  # noqa: F841
+            "現在装備",
+            equipment_names,
+        )
+
+        target_name = st.selectbox(  # noqa: F841
+            "目標装備",
+            equipment_names,
+            index=len(equipment_names) - 1,
+        )
+        current_upgrade = next(  # noqa: F841
+            upgrade
+            for upgrade in EQUIPMENT_UPGRADES
+            if upgrade.name == current_name
+        )
+
+        required = calculate_equipment_upgrade_cost(  # noqa: F841
+        upgrades=EQUIPMENT_UPGRADES,
+        current_order=current_upgrade.order,
+        target_order=target_upgrade.order,  # noqa: F821
+)
+
+        target_upgrade = next(  # noqa: F841
+            upgrade
+            for upgrade in EQUIPMENT_UPGRADES
+            if upgrade.name == target_name
+        )
+        with st.container(border=True):
+            st.subheader("素材条件")
+
+            current_col, target_col = st.columns(2, gap="large")
+
+            with current_col:
+                st.markdown("#### 現在所持")
+
+                current_alloy = st.number_input(
+                    "合金",
+                    min_value=0,
+                    value=0,
+                    step=1_000,
+                    key="current_alloy",
+                )
+                current_polish = st.number_input(
+                    "研磨剤",
+                    min_value=0,
+                    value=0,
+                    step=100,
+                    key="current_polish",
+                )
+                current_blueprint = st.number_input(
+                    "図面",
+                    min_value=0,
+                    value=0,
+                    step=10,
+                    key="current_blueprint",
+                )
+
+            with target_col:
+                st.markdown("#### 目標")
+
+                target_alloy = st.number_input(  # noqa: F841
+                    "合金",
+                    min_value=0,
+                    value=100_000,
+                    step=1_000,
+                    key="target_alloy",
+                )
+                target_polish = st.number_input(  # noqa: F841
+                    "研磨剤",
+                    min_value=0,
+                    value=3_800,
+                    step=100,
+                    key="target_polish",
+                )
+                target_blueprint = st.number_input(  # noqa: F841
+                    "図面",
+                    min_value=0,
+                    value=1_600,
+                    step=10,
+                    key="target_blueprint",
+                )
+
+            needed_alloy = max(
+                0,
+                required.alloy - current_alloy,
+            )
+
+            needed_polish = max(
+                0,
+                required.polish - current_polish,
+            )
+
+            needed_blueprint = max(
+                0,
+                required.blueprint - current_blueprint,
+            )
+
+            st.subheader("📋 強化に必要な素材")
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            col1.metric("🔩 合金", f"{required.alloy:,}")
+            col2.metric("🧪 研磨剤", f"{required.polish:,}")
+            col3.metric("📜 図面", f"{required.blueprint:,}")
+            col4.metric("🌙 月光琥珀", f"{required.moon_amber:,}")
+
+            st.markdown("#### 不足数")
+
+            need_col1, need_col2, need_col3 = st.columns(3)
+
+            need_col1.metric(
+                "合金",
+                f"{needed_alloy:,}",
+            )
+            need_col2.metric(
+                "研磨剤",
+                f"{needed_polish:,}",
+            )
+            need_col3.metric(
+                "図面",
+                f"{needed_blueprint:,}",
+            )
+
+            optimize_clicked = st.form_submit_button(
+                "最適な購入ルートを計算",
+                type="primary",
+                width="stretch",
+            )
+
+    if not optimize_clicked:
+        return
+
+    target = Target(
+        alloy=needed_alloy,
+        polish=needed_polish,
+        blueprint=needed_blueprint,
+    )
+
+    optimizer = CraftsmanShopOptimizer(PACKS)
+    result = optimizer.optimize(target)
+
+    is_reached = (
+        result.total_alloy >= needed_alloy
+        and result.total_polish >= needed_polish
+        and result.total_blueprint >= needed_blueprint
+    )
+
+    status_label = "目標達成" if is_reached else "目標未達"
+    status_icon = "✅" if is_reached else "⚠️"
+
+    with st.container(border=True):
+        header_col, price_col = st.columns([3, 1])
+
+        with header_col:
+            st.markdown("### 最適化結果")
+            st.caption(f"{status_icon} {status_label}")
+
+        with price_col:
+            st.metric(
+                "合計金額",
+                f"{result.total_price:,}円",
+            )
+
+        material_col1, material_col2, material_col3 = st.columns(3)
+
+        material_col1.metric(
+            "合金",
+            f"{result.total_alloy:,}",
+            delta=f"{result.total_alloy - needed_alloy:+,}",
+        )
+        material_col2.metric(
+            "研磨剤",
+            f"{result.total_polish:,}",
+            delta=f"{result.total_polish - needed_polish:+,}",
+        )
+        material_col3.metric(
+            "図面",
+            f"{result.total_blueprint:,}",
+            delta=f"{result.total_blueprint - needed_blueprint:+,}",
+        )
+
+    with st.container(border=True):
+        st.subheader("購入シミュレーション")
 
         running_price = 0
         running_alloy = 0
@@ -157,54 +265,156 @@ def main() -> None:
             running_blueprint += pack.blueprint
 
             st.markdown(
-                f"### {index}. {pack.price_tier:,}円　{pack.category.value}"
+                f"#### {index}. {pack.price_tier:,}円　{pack.category.value}"
             )
 
             pack_col1, pack_col2, pack_col3, pack_col4 = st.columns(4)
-            pack_col1.metric("💴 価格", f"{pack.price_tier:,}円")
-            pack_col2.metric("🔩 合金", f"{pack.alloy:,}")
-            pack_col3.metric("🧪 研磨剤", f"{pack.polish:,}")
-            pack_col4.metric("📐 図面", f"{pack.blueprint:,}")
+
+            pack_col1.metric(
+                "価格",
+                f"{pack.price_tier:,}円",
+            )
+            pack_col2.metric(
+                "合金",
+                f"{pack.alloy:,}",
+            )
+            pack_col3.metric(
+                "研磨剤",
+                f"{pack.polish:,}",
+            )
+            pack_col4.metric(
+                "図面",
+                f"{pack.blueprint:,}",
+            )
 
             st.caption("この時点での累計")
 
             total_col1, total_col2, total_col3, total_col4 = st.columns(4)
-            total_col1.metric("💴 累計金額", f"{running_price:,}円")
+
+            total_col1.metric(
+                "累計金額",
+                f"{running_price:,}円",
+            )
             total_col2.metric(
-                "🔩 累計合金",
+                "累計合金",
                 f"{running_alloy:,}",
-                delta=f"{running_alloy - needed_alloy:,}",
+                delta=f"{running_alloy - needed_alloy:+,}",
             )
             total_col3.metric(
-                "🧪 累計研磨剤",
+                "累計研磨剤",
                 f"{running_polish:,}",
-                delta=f"{running_polish - needed_polish:,}",
+                delta=f"{running_polish - needed_polish:+,}",
             )
             total_col4.metric(
-                "📐 累計図面",
+                "累計図面",
                 f"{running_blueprint:,}",
-                delta=f"{running_blueprint - needed_blueprint:,}",
+                delta=f"{running_blueprint - needed_blueprint:+,}",
             )
 
-            is_reached_at_step = (
+            reached_at_this_step = (
                 running_alloy >= needed_alloy
                 and running_polish >= needed_polish
                 and running_blueprint >= needed_blueprint
             )
 
-            if is_reached_at_step:
-                st.success("この段階で目標達成です。ここで購入を止められます。")
+            if reached_at_this_step:
+                st.success(
+                    "この段階で目標達成です。ここで購入を止められます。"
+                )
             else:
-                st.warning("まだ目標未達です。次の価格帯へ進みます。")
+                st.info(
+                    "まだ目標未達です。次の価格帯へ進みます。"
+                )
 
-            st.divider()
+            if index < len(result.packs):
+                st.divider()
 
+    with st.container(border=True):
+        st.subheader("Discord共有用レシート")
 
-        st.write("### 余剰素材")
-        surplus_col1, surplus_col2, surplus_col3 = st.columns(3)
-        surplus_col1.metric("🔩 合金余剰", f"+{result.total_alloy - needed_alloy:,}")
-        surplus_col2.metric("🧪 研磨剤余剰", f"+{result.total_polish - needed_polish:,}")
-        surplus_col3.metric("📐 図面余剰", f"+{result.total_blueprint - needed_blueprint:,}")
+        route_lines = [
+            f"{index}. {pack.price_tier:,}円　{pack.category.value}"
+            for index, pack in enumerate(result.packs, start=1)
+        ]
+
+        receipt_text = "\n".join(
+            [
+                "【工商の匠 購入レシート】",
+                "",
+                *route_lines,
+                "",
+                f"合計金額：{result.total_price:,}円",
+                "",
+                "獲得素材",
+                f"合金：{result.total_alloy:,}",
+                f"研磨剤：{result.total_polish:,}",
+                f"図面：{result.total_blueprint:,}",
+                "",
+                "不足分に対する余剰・不足",
+                f"合金：{result.total_alloy - needed_alloy:+,}",
+                f"研磨剤：{result.total_polish - needed_polish:+,}",
+                f"図面：{result.total_blueprint - needed_blueprint:+,}",
+                "",
+                f"判定：{status_label}",
+            ]
+        )
+
+        st.code(
+            receipt_text,
+            language=None,
+        )
+
+    with st.container(border=True):
+        st.subheader("この結果について")
+
+        if is_reached:
+            st.success("入力された不足素材を満たしています。")
+            st.write(
+                f"{len(result.packs)}段階目で目標達成するため、"
+                "それ以降の購入は不要です。"
+            )
+        else:
+            shortage_alloy = max(
+                0,
+                needed_alloy - result.total_alloy,
+            )
+            shortage_polish = max(
+                0,
+                needed_polish - result.total_polish,
+            )
+            shortage_blueprint = max(
+                0,
+                needed_blueprint - result.total_blueprint,
+            )
+
+            st.warning(
+                "工商の匠を最大まで進めても、"
+                "入力された不足素材には届きません。"
+            )
+
+            shortage_col1, shortage_col2, shortage_col3 = st.columns(3)
+
+            shortage_col1.metric(
+                "不足合金",
+                f"{shortage_alloy:,}",
+            )
+            shortage_col2.metric(
+                "不足研磨剤",
+                f"{shortage_polish:,}",
+            )
+            shortage_col3.metric(
+                "不足図面",
+                f"{shortage_blueprint:,}",
+            )
+
+        st.write(
+            f"推奨ルートの合計金額は "
+            f"**{result.total_price:,}円** です。"
+        )
+        st.write(
+            f"購入するパックは "
+            f"**{len(result.packs)}個** です。"
+        )
 
 
 if __name__ == "__main__":
